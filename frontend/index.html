@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Tareas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .status-bar {
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            font-weight: 500;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-bar.connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-bar.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+
+        .form-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 12px 30px;
+            cursor: pointer;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-size: 1em;
+        }
+
+        .btn-create {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-create:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-delete, .btn-toggle {
+            padding: 8px 15px;
+            font-size: 0.9em;
+            margin: 0 4px;
+        }
+
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+
+        .btn-toggle {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-toggle:hover {
+            background-color: #218838;
+        }
+
+        .tasks-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state p {
+            font-size: 1.1em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        thead {
+            background: #f8f9fa;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            color: #333;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        tbody tr {
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .task-id {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .task-name {
+            color: #333;
+        }
+
+        .status-completed {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            color: #ffc107;
+            font-weight: 600;
+        }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            input[type="text"] {
+                min-width: 100%;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+
+            th, td {
+                padding: 10px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn-delete, .btn-toggle {
+                width: 100%;
+                margin: 4px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Gestor de Tareas</h1>
+            <p>Organiza tus tareas de forma simple y eficiente</p>
+        </header>
+
+        <div class="content">
+            <div id="status" class="status-bar">
+                <span id="status-text">Conectando...</span>
+            </div>
+
+            <div id="login-section" class="form-section">
+                <h2>Iniciar Sesión</h2>
+                <form id="login-form">
+                    <div class="input-group" style="flex-direction: column; gap: 15px;">
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label for="username" style="color: #333; font-weight: 600; font-size: 0.95em;">Usuario</label>
+                            <input 
+                                type="text" 
+                                id="username" 
+                                placeholder="Ingresa tu usuario" 
+                                required
+                                style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em;"
+                            >
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label for="password" style="color: #333; font-weight: 600; font-size: 0.95em;">Contraseña</label>
+                            <input 
+                                type="password" 
+                                id="password" 
+                                placeholder="Ingresa tu contraseña" 
+                                required
+                                style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em;"
+                            >
+                        </div>
+                        <button type="submit" class="btn-create" style="width: 100%; margin-top: 10px;">Entrar</button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="app-section" style="display: none;">
+                <div class="form-section">
+                    <h2>Crear Nueva Tarea</h2>
+                    <form id="task-form">
+                        <div class="input-group">
+                            <input 
+                                type="text" 
+                                id="task-name" 
+                                placeholder="Escribe el nombre de tu nueva tarea..." 
+                                required
+                                maxlength="200"
+                            >
+                            <button type="submit" class="btn-create">Crear Tarea</button>
+                            <button type="button" class="btn-delete" onclick="logout()">Cerrar Sesión</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="tasks-section">
+                    <h2>Mis Tareas</h2>
+                    <div id="empty-state" class="empty-state" style="display: none;">
+                        <p>No tienes tareas. Crea una para empezar</p>
+                    </div>
+                    <table id="task-table" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th width="5%">ID</th>
+                                <th width="50%">Nombre</th>
+                                <th width="15%">Estado</th>
+                                <th width="30%">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="task-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api/tasks/';
+        
+        // Obtener CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        const csrftoken = getCookie('csrftoken');
+        let authToken = localStorage.getItem('authToken');
+        
+        // Función para hacer login
+        async function login(username, password) {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/login/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username: username, password: password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.token) {
+                    authToken = data.token;
+                    localStorage.setItem('authToken', authToken);
+                    updateStatus('Sesión iniciada correctamente', 'connected');
+                    showApp();
+                    getTasks();
+                } else {
+                    updateStatus('Usuario o contraseña incorrectos', 'error');
+                    authToken = null;
+                    localStorage.removeItem('authToken');
+                }
+            } catch (error) {
+                console.error('Error en login:', error);
+                updateStatus('Error al conectar con el servidor', 'error');
+            }
+        }
+
+        // Función para hacer logout
+        async function logout() {
+            authToken = null;
+            localStorage.removeItem('authToken');
+            updateStatus('Sesión cerrada', 'error');
+            showLogin();
+        }
+
+        // Mostrar formulario de login
+        function showLogin() {
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('app-section').style.display = 'none';
+        }
+
+        // Mostrar aplicación
+        function showApp() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('app-section').style.display = 'block';
+        }
+
+        // Event listener para el formulario de login
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            await login(username, password);
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        });
+        
+        async function getTasks() {
+            try {
+                const headers = {
+                    'Accept': 'application/json',
+                };
+                
+                if (authToken) {
+                    headers['Authorization'] = `Token ${authToken}`;
+                }
+                
+                const response = await fetch(API_URL, { 
+                    headers: headers
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        updateStatus('No autenticado', 'error');
+                        showLogin();
+                        renderTasks([]);
+                    } else {
+                        updateStatus('Error: ' + response.status + ' ' + response.statusText, 'error');
+                    }
+                    return;
+                }
+                
+                const tasks = await response.json();
+                
+                if (Array.isArray(tasks)) {
+                    updateStatus('Conectado al servidor - Autenticado', 'connected');
+                    showApp();
+                    renderTasks(tasks);
+                } else {
+                    updateStatus('No autenticado', 'error');
+                    showLogin();
+                    renderTasks([]);
+                }
+            } catch (error) {
+                console.error('Error al cargar tareas:', error);
+                updateStatus('Error de conexión. Verifica que el servidor esté corriendo.', 'error');
+                renderTasks([]);
+            }
+        }
+
+        function renderTasks(tasks) {
+            const taskList = document.getElementById('task-list');
+            const taskTable = document.getElementById('task-table');
+            const emptyState = document.getElementById('empty-state');
+            
+            if (tasks.length === 0) {
+                taskTable.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            taskTable.style.display = 'table';
+            emptyState.style.display = 'none';
+            taskList.innerHTML = '';
+
+            tasks.forEach(task => {
+                const row = document.createElement('tr');
+                const statusClass = task.completada ? 'status-completed' : 'status-pending';
+                const statusText = task.completada ? 'Completada' : 'Pendiente';
+                
+                row.innerHTML = `
+                    <td class="task-id">#${task.id}</td>
+                    <td class="task-name">${escapeHtml(task.nombre)}</td>
+                    <td class="${statusClass}">${statusText}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn-toggle" onclick="toggleComplete(${task.id}, ${!task.completada})">
+                                ${task.completada ? 'Pendiente' : 'Completar'}
+                            </button>
+                            <button class="btn-delete" onclick="deleteTask(${task.id})">Eliminar</button>
+                        </div>
+                    </td>
+                `;
+                taskList.appendChild(row);
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updateStatus(message, type) {
+            const status = document.getElementById('status');
+            const statusText = document.getElementById('status-text');
+            statusText.textContent = message;
+            status.className = 'status-bar ' + type;
+            status.style.display = 'block';
+        }
+
+        document.getElementById('task-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('task-name').value.trim();
+            
+            if (!nombre) {
+                alert('Por favor, escribe un nombre para la tarea');
+                return;
+            }
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${authToken}`,
+                    },
+                    body: JSON.stringify({ nombre: nombre })
+                });
+                if (!response.ok) throw new Error(response.statusText);
+                
+                document.getElementById('task-name').value = '';
+                getTasks();
+            } catch (error) {
+                console.error('Error al crear tarea:', error);
+                updateStatus('Error al crear la tarea', 'error');
+            }
+        });
+
+        async function deleteTask(id) {
+            if (!confirm('¿Estás seguro de que quieres eliminar esta tarea?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}${id}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Token ${authToken}`,
+                    }
+                });
+                if (!response.ok) throw new Error(response.statusText);
+                getTasks();
+            } catch (error) {
+                console.error('Error al eliminar tarea:', error);
+                updateStatus('Error al eliminar la tarea', 'error');
+            }
+        }
+
+        async function toggleComplete(id, newStatus) {
+            try {
+                const response = await fetch(`${API_URL}${id}/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${authToken}`,
+                    },
+                    body: JSON.stringify({ completada: newStatus })
+                });
+                if (!response.ok) throw new Error(response.statusText);
+                getTasks();
+            } catch (error) {
+                console.error('Error al actualizar tarea:', error);
+                updateStatus('Error al actualizar la tarea', 'error');
+            }
+        }
+
+        // Cargar tareas al iniciar y cada 2 segundos
+        if (authToken) {
+            getTasks();
+            showApp();
+        } else {
+            showLogin();
+        }
+        setInterval(getTasks, 2000);
+    </script>
